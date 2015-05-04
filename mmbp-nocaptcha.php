@@ -5,9 +5,8 @@ Plugin URI: http://www.functionsphp.com/recaptcha
 Description: This super-lightweight plugin adds a Google's No Captcha human friendly reCAPTCHA box to the BuddyPress registration form. 
 It should help keep your community free from spambots and also hopefully not be too much of a inconvenience for your sites genuine users.
 You can set a dark or light theme. The type of captcha can be set to image or audio and there are over 30 languages available for the NoCaptcha box. Or, set it to auto, based on the users browser language.
-(Plugin code based on Buddypress ReCaptacha by Hardeep Asrani, modified for latest reCaptcha API.)
-Version: 1.1.3
-Author: Neil Foster
+Version: 1.1.4
+Author: Mokum Music
 Author URI: http://www.mokummusic.com
 Requires at least: WordPress 2.8, BuddyPress 1.2.9
 License: GPL2
@@ -25,16 +24,13 @@ function enqueue_mokum_nocaptcha_scripts() {
 }
 add_action( 'wp_enqueue_scripts', 'enqueue_mokum_nocaptcha_scripts');
 
-
 // Make recaptcha script load asynchronously
 add_filter( 'script_loader_tag', function ( $tag, $handle ) {
 	if ( 'googleRecaptchaScript' !== $handle ) return $tag;
 	return str_replace( ' src', ' async="async" defer="defer" src', $tag );
 }, 10, 2 );
 
-
 // ********** ADMIN SETTINGS FUNCTIONS **************
-
 function mmbpcapt_init() {
 	register_setting( 'mmbpcapt', 'mmbpcapt_public' );
 	register_setting( 'mmbpcapt', 'mmbpcapt_private' );
@@ -62,10 +58,13 @@ function mmbpcapt_options_page() {
 
 // ********** FRONT END **************
 
-add_action( 'bp_before_registration_submit_buttons', 'bp_add_code' );
-add_action( 'bp_signup_validate', 'bp_validate' );
+add_action( 'bp_before_registration_submit_buttons', 'mmbp_add_code' );
+add_action( 'bp_signup_validate', 'mmbp_validate' );
+// add 'if use on comment form option is true'
+add_action( 'comment_form', 'mmbp_comment_captcha' );
 
-function bp_add_code() {
+// buddypress functions
+function mmbp_add_code() {
 	global $bp;
 	?>
 
@@ -93,7 +92,7 @@ function bp_add_code() {
 	<?php
 }
 
-function bp_validate() {
+function mmbp_validate() {
 	global $bp;
 
 	if (get_option('mmbpcapt_private') == null || get_option('mmbpcapt_private') == '') {
@@ -129,4 +128,28 @@ function bp_validate() {
 	}
 
 	return;
+}
+
+// comment form functions
+function mmbp_comment_captcha() {
+	?>
+
+
+			<div id="mm-nocaptcha"></div>
+
+			<?php if (get_option('mmbpcapt_public') == null || get_option('mmbpcapt_public') == '') echo "Enter your reCAPTCHA API keys in Wordpress admin settings!"; ?>
+
+		</div>
+	
+	<script type="text/javascript">
+		var onloadCaptchaCallback = function() {
+			grecaptcha.render('mm-nocaptcha', {
+				'sitekey' : '<?php echo get_option('mmbpcapt_public'); ?>',
+				'theme' : '<?php echo get_option('mmbpcapt_theme'); ?>',
+				'type' : '<?php echo get_option('mmbpcapt_type'); ?>'
+			});
+		};
+	</script>
+	<?php
+
 }
